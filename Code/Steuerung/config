@@ -1,0 +1,9 @@
+#Config file for control.sh
+
+RPI_WLAN_IPV6=<Adresse>
+RPI_ETH_IPV6=<Adresse>
+PORT=<Port>
+LAPTOP_PORT=<Port>
+WLAN_INTERFACE=<Interface>
+ETH_INTERFACE=<Interface>
+LAPTOP_STREAM_PORT=<Port>

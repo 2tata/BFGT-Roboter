@@ -16,31 +16,22 @@ if [ -f $CONFIGPART ]; then
 				IFS=' = ' read -a arr <<< "$line"
 				case ${arr[0]} in
 					PORT ) PORT=${arr[1]}
-echo $PORT
 					;;
 					SERIAL_BAUTRATE ) SERIAL_BAUTRATE=${arr[1]}
-echo $SERIAL_BAUTRATE
 					;;
 					SERIAL_INTERFACE ) SERIAL_INTERFACE=${arr[1]}
-echo $SERIAL_INTERFACE
 					;;
 					LAPTOP_IPV6_ADRESS_WIRELESS ) IPV6_ADRESS_W=${arr[1]}
-echo $IPV6_ADRESS_W
 					;;
 					LAPTOP_IPV6_ADRESS_ETHERNET ) IPV6_ADRESS_E=${arr[1]}
-echo $IPV6_ADRESS_E
 					;;
 					ETHERNET_INTERFACE ) E_INTERFACE=${arr[1]}
-echo $E_INTERFACE
 					;;
 					WIRELESS_INTERFACE ) W_INTERFACE=${arr[1]}
-echo $W_INTERFACE
 					;;
 					LAPTOP_PORT ) LP_PORT=${arr[1]}
-echo $LP_PORT
 					;;
 					LAPTOP_STREAM_PORT ) LP_STREAM_PORT=${arr[1]}
-echo $LP_STREAM_PORT
 					;;
 					* ) echo `date` "| fehler in der config datei" >> ~/log.txt
 						exit
