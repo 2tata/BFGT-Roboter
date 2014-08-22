@@ -99,12 +99,16 @@ do
 	if [ "$COMMAND" == "2" ]; then
 		ping -c 1 8.8.8.8 &> /dev/null
 		if [ $? -eq 0 ];  then
-			apt-get update &> /dev/null
-			apt-get --assume-yes upgrade &> /dev/null
-			apt-get --assume-yes dist-upgrade &> /dev/null
-			apt-get --assume-yes autoremove --purge &> /dev/null
-			apt-get autoclean &> /dev/null
-			rpi-update &> /dev/null
+			reboot=0
+			apt-get update
+			reboot=$(( reboot + `apt-get upgrade -y | grep '^Inst' | wc -l` ))
+			reboot=$(( reboot + `apt-get dist-upgrade -y | grep '^Inst' | wc -l` ))
+			apt-get autoremove --purge -y
+			apt-get autoclean
+			reboot=$(( reboot + `rpi-update | grep 'reboot' | wc -l` ))
+			if [ $reboot -ne 0 ]; then
+				reboot
+			fi;
 		fi;
 	fi;
 
