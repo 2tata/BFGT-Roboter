@@ -57,13 +57,13 @@ fi
 var="0"
 while [ $var -eq 0 ]
 do
-	ping6 -c 1 $LP_ADRESSE_W%$W_INTERFACE &> /dev/null
+	ping6 -c 1 $IPV6_ADRESS_W%$W_INTERFACE &> /dev/null
 	WLANW=$?
-	ping6 -c 1 $LP_ADRESSE_W%$E_INTERFACE &> /dev/null
+	ping6 -c 1 $IPV6_ADRESS_W%$E_INTERFACE &> /dev/null
 	WLANE=$?
-	ping6 -c 1 $LP_ADRESSE_E%$E_INTERFACE &> /dev/null
+	ping6 -c 1 $IPV6_ADRESS_E%$E_INTERFACE &> /dev/null
 	ETHE=$?
-	ping6 -c 1 $LP_ADRESSE_E%$W_INTERFACE &> /dev/null
+	ping6 -c 1 $IPV6_ADRESS_E%$W_INTERFACE &> /dev/null
 	ETHW=$?
 	if [ $WLANW -eq 0 ]; then
 		LP_IPV6_ADRESS="$LP_ADRESSE_W%$W_INTERFACE"
