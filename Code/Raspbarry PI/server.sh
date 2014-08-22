@@ -66,19 +66,19 @@ do
 	ping6 -c 1 $IPV6_ADRESS_E%$W_INTERFACE &> /dev/null
 	ETHW=$?
 	if [ $WLANW -eq 0 ]; then
-		LP_IPV6_ADRESS="$LP_ADRESSE_W%$W_INTERFACE"
+		LP_IPV6_ADRESS="$IPV6_ADRESS_W%$W_INTERFACE"
 		var="1"
 	fi;
 	if [ $WLANE -eq 0 ]; then
-		LP_IPV6_ADRESS="$LP_ADRESSE_W%$E_INTERFACE"
+		LP_IPV6_ADRESS="$IPV6_ADRESS_W%$E_INTERFACE"
 		var="1"
 	fi;
 	if [ $ETHE -eq 0 ]; then
-		LP_IPV6_ADRESS="$LP_ADRESSE_E%$E_INTERFACE"
+		LP_IPV6_ADRESS="$IPV6_ADRESS_E%$E_INTERFACE"
 		var="1"
 	fi;
 	if [ $ETHW -eq 0 ]; then
-		LP_IPV6_ADRESS="$LP_ADRESSE_E%$W_INTERFACE"
+		LP_IPV6_ADRESS="$IPV6_ADRESS_E%$W_INTERFACE"
 		var="1"
 	fi;
 done
