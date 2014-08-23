@@ -46,13 +46,13 @@ else
 fi
 
 #Check for first running
-(if [ -f /tmp/server.lock ]; then
+if [ -f /tmp/server.lock ]; then
 	echo "server ist bereits aktiv"
 	echo `date` "| server ist bereits aktiv" >> ~/log.txt
 	exit
 else
 	touch /tmp/server.lock
-fi) &
+fi
 
 FIRST=0
 var=0

@@ -99,9 +99,8 @@ do
 			EXIT=$(( $EXIT + 1 ))
 		fi;
 	fi;
+sleep 0.1
 done
-
-STATUS=0
 
 echo "Befel eingeben:"
 while true
