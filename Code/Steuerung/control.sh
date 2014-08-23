@@ -37,42 +37,71 @@ else
         exit
 fi
 
-STATUS=0
-
 echo "Ping test..."
-ping6 -c 1 $RPI_WLAN_IPV6%$W_INTERFACE &> /dev/null
-WLANW=$?
-ping6 -c 1 $RPI_WLAN_IPV6%$E_INTERFACE &> /dev/null
-WLANE=$?
-ping6 -c 1 $RPI_ETH_IPV6%$E_INTERFACE &> /dev/null
-ETHE=$?
-ping6 -c 1 $RPI_ETH_IPV6%$W_INTERFACE &> /dev/null
-ETHW=$?
+(ping6 -c 1 $RPI_WLAN_IPV6%$W_INTERFACE &> /dev/null) &
+PID0=$!
+(ping6 -c 1 $RPI_WLAN_IPV6%$E_INTERFACE &> /dev/null) &
+PID1=$!
+(ping6 -c 1 $RPI_ETH_IPV6%$E_INTERFACE &> /dev/null) &
+PID2=$!
+(ping6 -c 1 $RPI_ETH_IPV6%$W_INTERFACE &> /dev/null) &
+PID3=$!
 
-if [ $WLANW -ne 0 -a $WLANE -ne 0 -a $ETHE -ne 0 -a $ETHW -ne 0 ]; then
-        echo "Roboter nicht errechtbar!"
-	exit
-fi;
+EXIT=0
+var=0
+while [ $var -eq 0 ]
+do
+	if [ $EXIT -ge 4 ]; then
+		echo "Roboter nicht errechtbar!"
+		exit
+	fi;
+	if [ ! -e /proc/$PID0 ]; then
+		wait $PID0
+		WLANW=$?
+		if [ $WLANW -eq 0 ]; then
+			INTERFACE="$RPI_WLAN_IPV6%$W_INTERFACE"
+			echo "WLAN <--> WLAN"
+			var="1"
+		else
+			EXIT=$(( $EXIT + 1 ))
+		fi;
+	fi;
+	if [ ! -e /proc/$PID1 ]; then
+		wait $PID1
+		WLANE=$?
+		if [ $WLANE -eq 0 ]; then
+			INTERFACE="$RPI_WLAN_IPV6%$E_INTERFACE"
+			echo "WLAN <--> ETH"
+			var="1"
+		else
+			EXIT=$(( $EXIT + 1 ))
+		fi;
+	fi;
+	if [ ! -e /proc/$PID2 ]; then
+		wait $PID2
+		ETHE=$?
+		if [ $ETHE -eq 0 ]; then
+			INTERFACE="$RPI_ETH_IPV6%$E_INTERFACE"
+			echo "ETH <--> ETH"
+			var="1"
+		else
+			EXIT=$(( $EXIT + 1 ))
+		fi;
+	fi;
+	if [ ! -e /proc/$PID3 ]; then
+		wait $PID3
+		ETHW=$?
+		if [ $ETHW -eq 0 ]; then
+			INTERFACE="$RPI_ETH_IPV6%$W_INTERFACE"
+			echo "ETH <--> WLAN"
+			var="1"
+		else
+			EXIT=$(( $EXIT + 1 ))
+		fi;
+	fi;
+done
 
-if [ $WLANW -eq 0 ]; then
-	INTERFACE="$RPI_WLAN_IPV6%$W_INTERFACE"
-	echo "Wlan verbindung"
-fi;
-
-if [ $WLANE -eq 0 ]; then
-        INTERFACE="$RPI_WLAN_IPV6%$E_INTERFACE"
-        echo "Wlan verbindung"
-fi;
-
-if [ $ETHE -eq 0 ]; then
-        INTERFACE="$RPI_ETH_IPV6%$E_INTERFACE"
-	echo "Lan verbindung"
-fi;
-
-if [ $ETHW -eq 0 ]; then
-        INTERFACE="$RPI_ETH_IPV6%$W_INTERFACE"
-        echo "Lan verbindung"
-fi;
+STATUS=0
 
 echo "Befel eingeben:"
 while true
