@@ -46,40 +46,60 @@ else
 fi
 
 #Check for first running
-if [ -f /tmp/server.lock ]; then
+(if [ -f /tmp/server.lock ]; then
 	echo "server ist bereits aktiv"
 	echo `date` "| server ist bereits aktiv" >> ~/log.txt
 	exit
 else
 	touch /tmp/server.lock
-fi
+fi) &
 
-var="0"
+FIRST=0
+var=0
 while [ $var -eq 0 ]
 do
-	ping6 -c 1 $IPV6_ADRESS_W%$W_INTERFACE &> /dev/null
-	WLANW=$?
-	ping6 -c 1 $IPV6_ADRESS_W%$E_INTERFACE &> /dev/null
-	WLANE=$?
-	ping6 -c 1 $IPV6_ADRESS_E%$E_INTERFACE &> /dev/null
-	ETHE=$?
-	ping6 -c 1 $IPV6_ADRESS_E%$W_INTERFACE &> /dev/null
-	ETHW=$?
-	if [ $WLANW -eq 0 ]; then
-		LP_IPV6_ADRESS="$IPV6_ADRESS_W%$W_INTERFACE"
-		var="1"
+	if [ ! -e /proc/$PID0 -a ! -e /proc/$PID1 -a ! -e /proc/$PID2 -a ! -e /proc/$PID3 -o $FIRST -eq 0 ]; then
+		FIRST=1
+		(ping6 -c 1 $IPV6_ADRESS_W%$W_INTERFACE &> /dev/null) &
+		PID0=$!
+		(ping6 -c 1 $IPV6_ADRESS_W%$E_INTERFACE &> /dev/null) &
+		PID1=$!
+		(ping6 -c 1 $IPV6_ADRESS_E%$E_INTERFACE &> /dev/null) &
+		PID2=$!
+		(ping6 -c 1 $IPV6_ADRESS_E%$W_INTERFACE &> /dev/null) &
+		PID3=$!
 	fi;
-	if [ $WLANE -eq 0 ]; then
-		LP_IPV6_ADRESS="$IPV6_ADRESS_W%$E_INTERFACE"
-		var="1"
+	if [ ! -e /proc/$PID0 ]; then
+		wait $PID0
+		WLANW=$?
+		if [ $WLANW -eq 0 ]; then
+			LP_IPV6_ADRESS="$IPV6_ADRESS_W%$W_INTERFACE"
+			var="1"
+		fi;
 	fi;
-	if [ $ETHE -eq 0 ]; then
-		LP_IPV6_ADRESS="$IPV6_ADRESS_E%$E_INTERFACE"
-		var="1"
+	if [ ! -e /proc/$PID1 ]; then
+		wait $PID1
+		WLANE=$?
+		if [ $WLANE -eq 0 ]; then
+			LP_IPV6_ADRESS="$IPV6_ADRESS_W%$E_INTERFACE"
+			var="1"
+		fi;
 	fi;
-	if [ $ETHW -eq 0 ]; then
-		LP_IPV6_ADRESS="$IPV6_ADRESS_E%$W_INTERFACE"
-		var="1"
+	if [ ! -e /proc/$PID2 ]; then
+		wait $PID2
+		ETHE=$?
+		if [ $ETHE -eq 0 ]; then
+			LP_IPV6_ADRESS="$IPV6_ADRESS_E%$E_INTERFACE"
+			var="1"
+		fi;
+	fi;
+	if [ ! -e /proc/$PID3 ]; then
+		wait $PID3
+		ETHW=$?
+		if [ $ETHW -eq 0 ]; then
+			LP_IPV6_ADRESS="$IPV6_ADRESS_E%$W_INTERFACE"
+			var="1"
+		fi;
 	fi;
 done
 
@@ -93,7 +113,7 @@ do
 	echo $Line
 
 	if [ "$COMMAND" == "1" ]; then
-		raspivid -w 640 -h 480 -t 999999 -fps 10 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT &
+		raspivid -w 640 -h 480 -vf -hf -rot 90 -t 999999 -fps 10 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT &
 	fi;
 	
 	if [ "$COMMAND" == "2" ]; then
