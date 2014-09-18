@@ -103,11 +103,33 @@ do
 	fi;
 done
 
+COMMANDPID=0
 while true
 do
 	stty -F $SERIAL_INTERFACE raw ispeed $SERIAL_BAUTRATE ospeed $SERIAL_BAUTRATE cs8 -ignpar -cstopb -echo
-	COMMAND=$( nc -6lp $PORT )
-	echo $COMMAND
+	if [ $COMMANDPID -eq 0 ]; then
+		(
+			COMMAND=$( nc -6lp $PORT )
+			case $COMMAND in
+				1 ) EXITCODE=1
+				;;
+				2 ) EXITCODE=2
+				;;
+				w ) EXITCODE=3
+				;;
+				a ) EXITCODE=4
+				;;
+				s ) EXITCODE=5
+				;;
+				d ) EXITCODE=6
+				;;
+				q ) EXITCODE=7
+				;;
+			esac
+			exit $EXITCODE
+		) &
+		COMMANDPID=$!
+	fi;
 
 	read -i -s Line < $SERIAL_INTERFACE
 	echo $Line
@@ -115,58 +137,63 @@ do
 	if [ "$COMMAND" == "1" ]; then
 		raspivid -w 640 -h 480 -vf -hf -rot 90 -t 999999 -fps 10 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT &
 	fi;
-	
-	if [ "$COMMAND" == "2" ]; then
-		ping -c 1 8.8.8.8 &> /dev/null
-		if [ $? -eq 0 ];  then
-			reboot=0
-			apt-get update
-			reboot=$(( reboot + `apt-get upgrade -y | grep '^Inst' | wc -l` ))
-			reboot=$(( reboot + `apt-get dist-upgrade -y | grep '^Inst' | wc -l` ))
-			apt-get autoremove --purge -y
-			apt-get autoclean
-			reboot=$(( reboot + `rpi-update | grep 'reboot' | wc -l` ))
-			if [ $reboot -ne 0 ]; then
-				reboot
+	if [ ! -e /proc/$COMMANDPID -a $COMMANDPID -ne 0 ]; then
+		wait $COMMANDPID
+		COMMAND=$?
+		COMMANDPID=0
+		echo $COMMAND
+		if [ "$COMMAND" == "2" ]; then
+			ping -c 1 8.8.8.8 &> /dev/null
+			if [ $? -eq 0 ];  then
+				reboot=0
+				apt-get update
+				reboot=$(( reboot + `apt-get upgrade -y | grep '^Inst' | wc -l` ))
+				reboot=$(( reboot + `apt-get dist-upgrade -y | grep '^Inst' | wc -l` ))
+				apt-get autoremove --purge -y
+				apt-get autoclean
+				reboot=$(( reboot + `rpi-update | grep 'reboot' | wc -l` ))
+				if [ $reboot -ne 0 ]; then
+					reboot
+				fi;
 			fi;
 		fi;
-	fi;
 
-	if [ "$COMMAND" == "s" ]; then
-		echo -n "1" >$SERIAL_INTERFACE
-		echo -n "2" >$SERIAL_INTERFACE
-		echo -n "3" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "1" >$SERIAL_INTERFACE
-	fi;
-	if [ "$COMMAND" == "w" ]; then
-		echo -n "1" >$SERIAL_INTERFACE
-		echo -n "1" >$SERIAL_INTERFACE
-		echo -n "4" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "1" >$SERIAL_INTERFACE
-	fi;
-	if [ "$COMMAND" == "d" ]; then
-		echo -n "1" >$SERIAL_INTERFACE
-		echo -n "2" >$SERIAL_INTERFACE
-		echo -n "3" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "000" >$SERIAL_INTERFACE
-		echo -n "1" >$SERIAL_INTERFACE
-	fi;
-	if [ "$COMMAND" == "a" ]; then
-		echo -n "1" >$SERIAL_INTERFACE
-		echo -n "2" >$SERIAL_INTERFACE
-		echo -n "3" >$SERIAL_INTERFACE
-		echo -n "000" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "1" >$SERIAL_INTERFACE
-	fi;
-	if [ "$COMMAND" == "q"  ]; then
-	        echo -n "1" >$SERIAL_INTERFACE
-		echo -n "5" >$SERIAL_INTERFACE
-		echo -n "5" >$SERIAL_INTERFACE
+		if [ "$COMMAND" == "s" ]; then
+			echo -n "1" >$SERIAL_INTERFACE
+			echo -n "2" >$SERIAL_INTERFACE
+			echo -n "3" >$SERIAL_INTERFACE
+			echo -n "255" >$SERIAL_INTERFACE
+			echo -n "255" >$SERIAL_INTERFACE
+			echo -n "1" >$SERIAL_INTERFACE
+		fi;
+		if [ "$COMMAND" == "w" ]; then
+			echo -n "1" >$SERIAL_INTERFACE
+			echo -n "1" >$SERIAL_INTERFACE
+			echo -n "4" >$SERIAL_INTERFACE
+			echo -n "255" >$SERIAL_INTERFACE
+			echo -n "255" >$SERIAL_INTERFACE
+			echo -n "1" >$SERIAL_INTERFACE
+		fi;
+		if [ "$COMMAND" == "d" ]; then
+			echo -n "1" >$SERIAL_INTERFACE
+			echo -n "2" >$SERIAL_INTERFACE
+			echo -n "3" >$SERIAL_INTERFACE
+			echo -n "255" >$SERIAL_INTERFACE
+			echo -n "000" >$SERIAL_INTERFACE
+			echo -n "1" >$SERIAL_INTERFACE
+		fi;
+		if [ "$COMMAND" == "a" ]; then
+			echo -n "1" >$SERIAL_INTERFACE
+			echo -n "2" >$SERIAL_INTERFACE
+			echo -n "3" >$SERIAL_INTERFACE
+			echo -n "000" >$SERIAL_INTERFACE
+			echo -n "255" >$SERIAL_INTERFACE
+			echo -n "1" >$SERIAL_INTERFACE
+		fi;
+		if [ "$COMMAND" == "q"  ]; then
+			echo -n "1" >$SERIAL_INTERFACE
+			echo -n "5" >$SERIAL_INTERFACE
+			echo -n "5" >$SERIAL_INTERFACE
+		fi;
 	fi;
 done
