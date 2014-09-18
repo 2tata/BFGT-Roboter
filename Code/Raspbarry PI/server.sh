@@ -103,31 +103,73 @@ do
 	fi;
 done
 
+function GetCommand {
+	COMMAND=$( nc -6lp $PORT )
+	case $COMMAND in
+		1 ) EXITCODE=1
+		;;
+		2 ) EXITCODE=2
+		;;
+		w ) EXITCODE=3
+		;;
+		a ) EXITCODE=4
+		;;
+		s ) EXITCODE=5
+		;;
+		d ) EXITCODE=6
+		;;
+		q ) EXITCODE=7
+		;;
+	esac
+	exit $EXITCODE
+}
+
+function MotorControl () {
+	if [ "$COMMAND" == "5" ]; then
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "2" >$SERIAL_INTERFACE
+		echo -n "3" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "1" >$SERIAL_INTERFACE
+	fi;
+	if [ "$COMMAND" == "3" ]; then
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "4" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "1" >$SERIAL_INTERFACE
+	fi;
+	if [ "$COMMAND" == "6" ]; then
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "2" >$SERIAL_INTERFACE
+		echo -n "3" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "000" >$SERIAL_INTERFACE
+		echo -n "1" >$SERIAL_INTERFACE
+	fi;
+	if [ "$COMMAND" == "4" ]; then
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "2" >$SERIAL_INTERFACE
+		echo -n "3" >$SERIAL_INTERFACE
+		echo -n "000" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "1" >$SERIAL_INTERFACE
+	fi;
+	if [ "$COMMAND" == "7"  ]; then
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "5" >$SERIAL_INTERFACE
+		echo -n "5" >$SERIAL_INTERFACE
+	fi;
+}
+
 COMMANDPID=0
 while true
 do
 	stty -F $SERIAL_INTERFACE raw ispeed $SERIAL_BAUTRATE ospeed $SERIAL_BAUTRATE cs8 -ignpar -cstopb -echo
 	if [ $COMMANDPID -eq 0 ]; then
-		(
-			COMMAND=$( nc -6lp $PORT )
-			case $COMMAND in
-				1 ) EXITCODE=1
-				;;
-				2 ) EXITCODE=2
-				;;
-				w ) EXITCODE=3
-				;;
-				a ) EXITCODE=4
-				;;
-				s ) EXITCODE=5
-				;;
-				d ) EXITCODE=6
-				;;
-				q ) EXITCODE=7
-				;;
-			esac
-			exit $EXITCODE
-		) &
+		( GetCommand ) &
 		COMMANDPID=$!
 	fi;
 
@@ -157,43 +199,6 @@ do
 				fi;
 			fi;
 		fi;
-
-		if [ "$COMMAND" == "5" ]; then
-			echo -n "1" >$SERIAL_INTERFACE
-			echo -n "2" >$SERIAL_INTERFACE
-			echo -n "3" >$SERIAL_INTERFACE
-			echo -n "255" >$SERIAL_INTERFACE
-			echo -n "255" >$SERIAL_INTERFACE
-			echo -n "1" >$SERIAL_INTERFACE
-		fi;
-		if [ "$COMMAND" == "3" ]; then
-			echo -n "1" >$SERIAL_INTERFACE
-			echo -n "1" >$SERIAL_INTERFACE
-			echo -n "4" >$SERIAL_INTERFACE
-			echo -n "255" >$SERIAL_INTERFACE
-			echo -n "255" >$SERIAL_INTERFACE
-			echo -n "1" >$SERIAL_INTERFACE
-		fi;
-		if [ "$COMMAND" == "6" ]; then
-			echo -n "1" >$SERIAL_INTERFACE
-			echo -n "2" >$SERIAL_INTERFACE
-			echo -n "3" >$SERIAL_INTERFACE
-			echo -n "255" >$SERIAL_INTERFACE
-			echo -n "000" >$SERIAL_INTERFACE
-			echo -n "1" >$SERIAL_INTERFACE
-		fi;
-		if [ "$COMMAND" == "4" ]; then
-			echo -n "1" >$SERIAL_INTERFACE
-			echo -n "2" >$SERIAL_INTERFACE
-			echo -n "3" >$SERIAL_INTERFACE
-			echo -n "000" >$SERIAL_INTERFACE
-			echo -n "255" >$SERIAL_INTERFACE
-			echo -n "1" >$SERIAL_INTERFACE
-		fi;
-		if [ "$COMMAND" == "7"  ]; then
-			echo -n "1" >$SERIAL_INTERFACE
-			echo -n "5" >$SERIAL_INTERFACE
-			echo -n "5" >$SERIAL_INTERFACE
-		fi;
+		MotorControl $COMMAND
 	fi;
 done
