@@ -110,30 +110,22 @@ function GetCommand {
 		;;
 		2 ) EXITCODE=2
 		;;
-		w ) EXITCODE=3
+		w ) EXITCODE=251
 		;;
-		a ) EXITCODE=4
+		a ) EXITCODE=252
 		;;
-		s ) EXITCODE=5
+		s ) EXITCODE=253
 		;;
-		d ) EXITCODE=6
+		d ) EXITCODE=254
 		;;
-		q ) EXITCODE=7
+		q ) EXITCODE=255
 		;;
 	esac
 	exit $EXITCODE
 }
 
 function MotorControl () {
-	if [ "$COMMAND" == "5" ]; then
-		echo -n "1" >$SERIAL_INTERFACE
-		echo -n "2" >$SERIAL_INTERFACE
-		echo -n "3" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "1" >$SERIAL_INTERFACE
-	fi;
-	if [ "$COMMAND" == "3" ]; then
+	if [ $COMMAND -eq 251 ]; then
 		echo -n "1" >$SERIAL_INTERFACE
 		echo -n "1" >$SERIAL_INTERFACE
 		echo -n "4" >$SERIAL_INTERFACE
@@ -141,15 +133,7 @@ function MotorControl () {
 		echo -n "255" >$SERIAL_INTERFACE
 		echo -n "1" >$SERIAL_INTERFACE
 	fi;
-	if [ "$COMMAND" == "6" ]; then
-		echo -n "1" >$SERIAL_INTERFACE
-		echo -n "2" >$SERIAL_INTERFACE
-		echo -n "3" >$SERIAL_INTERFACE
-		echo -n "255" >$SERIAL_INTERFACE
-		echo -n "000" >$SERIAL_INTERFACE
-		echo -n "1" >$SERIAL_INTERFACE
-	fi;
-	if [ "$COMMAND" == "4" ]; then
+	if [ $COMMAND -eq 252 ]; then
 		echo -n "1" >$SERIAL_INTERFACE
 		echo -n "2" >$SERIAL_INTERFACE
 		echo -n "3" >$SERIAL_INTERFACE
@@ -157,7 +141,23 @@ function MotorControl () {
 		echo -n "255" >$SERIAL_INTERFACE
 		echo -n "1" >$SERIAL_INTERFACE
 	fi;
-	if [ "$COMMAND" == "7"  ]; then
+	if [ $COMMAND -eq 253 ]; then
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "2" >$SERIAL_INTERFACE
+		echo -n "3" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "1" >$SERIAL_INTERFACE
+	fi;
+	if [ $COMMAND -eq 254 ]; then
+		echo -n "1" >$SERIAL_INTERFACE
+		echo -n "2" >$SERIAL_INTERFACE
+		echo -n "3" >$SERIAL_INTERFACE
+		echo -n "255" >$SERIAL_INTERFACE
+		echo -n "000" >$SERIAL_INTERFACE
+		echo -n "1" >$SERIAL_INTERFACE
+	fi;
+	if [ $COMMAND -eq 255  ]; then
 		echo -n "1" >$SERIAL_INTERFACE
 		echo -n "5" >$SERIAL_INTERFACE
 		echo -n "5" >$SERIAL_INTERFACE
@@ -180,6 +180,7 @@ do
 		raspivid -w 640 -h 480 -vf -hf -rot 90 -t 999999 -fps 10 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT &
 	fi;
 	if [ ! -e /proc/$COMMANDPID -a $COMMANDPID -ne 0 ]; then
+		stty -F $SERIAL_INTERFACE raw ispeed $SERIAL_BAUTRATE ospeed $SERIAL_BAUTRATE cs8 -ignpar -cstopb -echo
 		wait $COMMANDPID
 		COMMAND=$?
 		COMMANDPID=0
