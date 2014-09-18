@@ -158,7 +158,7 @@ do
 			fi;
 		fi;
 
-		if [ "$COMMAND" == "s" ]; then
+		if [ "$COMMAND" == "5" ]; then
 			echo -n "1" >$SERIAL_INTERFACE
 			echo -n "2" >$SERIAL_INTERFACE
 			echo -n "3" >$SERIAL_INTERFACE
@@ -166,7 +166,7 @@ do
 			echo -n "255" >$SERIAL_INTERFACE
 			echo -n "1" >$SERIAL_INTERFACE
 		fi;
-		if [ "$COMMAND" == "w" ]; then
+		if [ "$COMMAND" == "3" ]; then
 			echo -n "1" >$SERIAL_INTERFACE
 			echo -n "1" >$SERIAL_INTERFACE
 			echo -n "4" >$SERIAL_INTERFACE
@@ -174,7 +174,7 @@ do
 			echo -n "255" >$SERIAL_INTERFACE
 			echo -n "1" >$SERIAL_INTERFACE
 		fi;
-		if [ "$COMMAND" == "d" ]; then
+		if [ "$COMMAND" == "6" ]; then
 			echo -n "1" >$SERIAL_INTERFACE
 			echo -n "2" >$SERIAL_INTERFACE
 			echo -n "3" >$SERIAL_INTERFACE
@@ -182,7 +182,7 @@ do
 			echo -n "000" >$SERIAL_INTERFACE
 			echo -n "1" >$SERIAL_INTERFACE
 		fi;
-		if [ "$COMMAND" == "a" ]; then
+		if [ "$COMMAND" == "4" ]; then
 			echo -n "1" >$SERIAL_INTERFACE
 			echo -n "2" >$SERIAL_INTERFACE
 			echo -n "3" >$SERIAL_INTERFACE
@@ -190,7 +190,7 @@ do
 			echo -n "255" >$SERIAL_INTERFACE
 			echo -n "1" >$SERIAL_INTERFACE
 		fi;
-		if [ "$COMMAND" == "q"  ]; then
+		if [ "$COMMAND" == "7"  ]; then
 			echo -n "1" >$SERIAL_INTERFACE
 			echo -n "5" >$SERIAL_INTERFACE
 			echo -n "5" >$SERIAL_INTERFACE
