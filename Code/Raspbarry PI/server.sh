@@ -110,6 +110,8 @@ function GetCommand {
 		;;
 		2 ) EXITCODE=2
 		;;
+		3 ) EXITCODE=3
+		;;
 		w ) EXITCODE=251
 		;;
 		a ) EXITCODE=252
@@ -163,8 +165,12 @@ function MotorControl () {
 		echo -n "5" >$SERIAL_INTERFACE
 	fi;
 }
-
+STREAMSTATUS="Stream offline"
+REBOOTSTATUS="kein reboot"
+REBOOTCASH=1
+STREAMPID=0
 COMMANDPID=0
+REBOOTPID=0
 while true
 do
 	stty -F $SERIAL_INTERFACE raw ispeed $SERIAL_BAUTRATE ospeed $SERIAL_BAUTRATE cs8 -ignpar -cstopb -echo
@@ -172,33 +178,64 @@ do
 		( GetCommand ) &
 		COMMANDPID=$!
 	fi;
-
-	read -i -s Line < $SERIAL_INTERFACE
-	echo $Line
-
-	if [ "$COMMAND" == "1" ]; then
-		raspivid -w 640 -h 480 -vf -hf -rot 90 -t 999999 -fps 10 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT &
+	if [ ! -e /proc/$REBOOTPID -a $REBOOTCASH -eq 0 ]; then
+		REBOOTCASH=1
+		wait $REBOOTPID
+		if [ $? -ne 0 ]; then
+			REBOOTSTATUS="benötigt reboot"
+		fi;
 	fi;
+	if [ ! -e /proc/$STREAMPID ]; then
+		STREAMSTATUS="Stream offline"
+	fi;
+	read -i -s Line < $SERIAL_INTERFACE
+	clear
+	echo $STREAMSTATUS $REBOOTSTATUS
+	echo $Line
 	if [ ! -e /proc/$COMMANDPID -a $COMMANDPID -ne 0 ]; then
 		stty -F $SERIAL_INTERFACE raw ispeed $SERIAL_BAUTRATE ospeed $SERIAL_BAUTRATE cs8 -ignpar -cstopb -echo
 		wait $COMMANDPID
 		COMMAND=$?
 		COMMANDPID=0
 		echo $COMMAND
-		if [ "$COMMAND" == "2" ]; then
-			ping -c 1 8.8.8.8 &> /dev/null
-			if [ $? -eq 0 ];  then
-				reboot=0
-				apt-get update
-				reboot=$(( reboot + `apt-get upgrade -y | grep '^Inst' | wc -l` ))
-				reboot=$(( reboot + `apt-get dist-upgrade -y | grep '^Inst' | wc -l` ))
-				apt-get autoremove --purge -y
-				apt-get autoclean
-				reboot=$(( reboot + `rpi-update | grep 'reboot' | wc -l` ))
-				if [ $reboot -ne 0 ]; then
-					reboot
-				fi;
+		if [ "$COMMAND" == "1" ]; then
+			if [ ! -e /proc/$STREAMPID ]; then
+				( raspivid -w 640 -h 480 -vf -hf -rot 90 -t 999999 -fps 10 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT ) &
+				STREAMPID=$!
+				STREAMSTATUS="Stream Aktiv"
 			fi;
+		fi;
+
+		if [ "$COMMAND" == "2" ]; then
+			if [ ! -e /proc/$REBOOTPID ]; then
+				if [ "$REBOOTSTATUS" == "kein reboot" ]; then
+					ping -c 1 8.8.8.8 &> /dev/null
+					if [ $? -eq 0 ];  then
+						(
+							reboot=0
+							apt-get update
+							reboot=$(( reboot + `apt-get upgrade -y | grep '^Inst' | wc -l` ))
+							reboot=$(( reboot + `apt-get dist-upgrade -y | grep '^Inst' | wc -l` ))
+							apt-get autoremove --purge -y
+							apt-get autoclean
+							reboot=$(( reboot + `rpi-update | grep 'reboot' | wc -l` ))
+						) &
+						REBOOTPID=$!
+						REBOOTCASH=0
+					fi;
+				else
+					if [ "$REBOOTSTATUS" == "benötigt reboot" -a $REBOOTCASH -eq 1 ]; then
+						MotorControl 255
+						reboot
+					fi;
+				fi;
+			else
+				echo "Update wird schon ausgeführt"
+			fi;
+		fi;
+		if [ $COMMAND -eq 3 ]; then
+			MotorControl 255
+			shutdown -h now
 		fi;
 		MotorControl $COMMAND
 	fi;
