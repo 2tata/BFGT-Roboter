@@ -1,40 +1,40 @@
 #!/bin/bash
 clear
 
-CONFIGPART="part to config"
+CONFIGPART="Part to config"
 
 # Read Config file
 if [ -f $CONFIGPART ]; then
-        while read line;
-        do
-                if [ -n "$line" ]; then
-                        if [[ ${line:0:1} != '#' ]]; then
-                                IFS=' = ' read -a arr <<< "$line"
-                                case ${arr[0]} in
-                                        PORT ) PORT=${arr[1]}
-                                        ;;
-                                        RPI_WLAN_IPV6 ) RPI_WLAN_IPV6=${arr[1]}
-                                        ;;
-                                        RPI_ETH_IPV6 ) RPI_ETH_IPV6=${arr[1]}
-                                        ;;
-                                        ETH_INTERFACE ) E_INTERFACE=${arr[1]}
-                                        ;;
-                                        WLAN_INTERFACE ) W_INTERFACE=${arr[1]}
-                                        ;;
-                                        LAPTOP_PORT ) LP_PORT=${arr[1]}
-                                        ;;
-                                        LAPTOP_STREAM_PORT ) LP_STREAM_PORT=${arr[1]}
-                                        ;;
-                                        * ) echo `date` "| fehler in der config datei" >> ~/log.txt
-                                                exit
-                                        ;;
-                                esac
-                        fi;
-                fi;
-        done < $CONFIGPART
+	while read line;
+	do
+		if [ -n "$line" ]; then
+			if [[ ${line:0:1} != '#' ]]; then
+				IFS=' = ' read -a arr <<< "$line"
+				case ${arr[0]} in
+					PORT ) PORT=${arr[1]}
+					;;
+					RPI_WLAN_IPV6 ) RPI_WLAN_IPV6=${arr[1]}
+					;;
+					RPI_ETH_IPV6 ) RPI_ETH_IPV6=${arr[1]}
+					;;
+					ETH_INTERFACE ) E_INTERFACE=${arr[1]}
+					;;
+					WLAN_INTERFACE ) W_INTERFACE=${arr[1]}
+					;;
+					LAPTOP_PORT ) LP_PORT=${arr[1]}
+					;;
+					LAPTOP_STREAM_PORT ) LP_STREAM_PORT=${arr[1]}
+					;;
+					* ) echo `date` "| fehler in der config datei" >> ~/log.txt
+						exit
+					;;
+				esac
+			fi;
+		fi;
+	done < $CONFIGPART
 else
-        echo `date` "| config datei nicht vorhanden" >> ~/log.txt
-        exit
+	echo `date` "| config datei nicht vorhanden" >> ~/log.txt
+	exit
 fi
 
 echo "Ping test..."
@@ -102,17 +102,27 @@ do
 sleep 0.1
 done
 
+NCPID=0
 echo "Befel eingeben:"
 while true
 do
+	if [ $NCPID -eq 0 ]; then
+		(
+			while true
+			do
+				nc -6lp $LP_PORT
+			done
+		) &
+		NCPID=1
+	fi;
 	read -n 1 -s COMMAND
 	echo $COMMAND
 
 	if [ "$COMMAND" == "1"  ]; then
-		nc -6lp $LP_STREAM_PORT | mplayer -fps 15 -cache 512 - &
+		nc -6lp $LP_STREAM_PORT | mplayer -fps 10 -cache 512 -cache-min 1 -framedrop - &
 		echo "1" | nc -6 $INTERFACE $PORT
 	fi;
-	if [ "$COMMAND" == "2" -o "$COMMAND" == "w" -o "$COMMAND" == "s" -o "$COMMAND" == "a" -o "$COMMAND" == "d" -o "$COMMAND" == "q" ]; then
+	if [ "$COMMAND" == "2" -o "$COMMAND" == "3" -o "$COMMAND" == "w" -o "$COMMAND" == "s" -o "$COMMAND" == "a" -o "$COMMAND" == "d" -o "$COMMAND" == "q" ]; then
 		echo $COMMAND | nc -6 $INTERFACE $PORT
 	fi;
 done
