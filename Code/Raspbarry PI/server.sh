@@ -165,8 +165,8 @@ function MotorControl () {
 		echo -n "5" >$SERIAL_INTERFACE
 	fi;
 }
-STREAMSTATUS="Stream offline"
-REBOOTSTATUS="kein reboot"
+STREAMSTATUS="Stream=0"
+REBOOTSTATUS="Reboot=0"
 REBOOTCASH=1
 STREAMPID=0
 COMMANDPID=0
@@ -178,20 +178,24 @@ do
 		( GetCommand ) &
 		COMMANDPID=$!
 	fi;
+	if [ $REBOOTCASH -eq 0 ]; then
+		REBOOTPROCES="Updateprozess=1"
+	else
+		REBOOTPROCES="Updateprozess=0"
+	fi;
 	if [ ! -e /proc/$REBOOTPID -a $REBOOTCASH -eq 0 ]; then
 		REBOOTCASH=1
 		wait $REBOOTPID
 		if [ $? -ne 0 ]; then
-			REBOOTSTATUS="benötigt reboot"
+			REBOOTSTATUS="Reboot=1"
 		fi;
 	fi;
 	if [ ! -e /proc/$STREAMPID ]; then
-		STREAMSTATUS="Stream offline"
+		STREAMSTATUS="Stream=0"
 	fi;
-	read -i -s Line < $SERIAL_INTERFACE
+	Line=`cat $SERIAL_INTERFACE | head -n 3 | tail -n 1`
 	clear
-	echo $STREAMSTATUS $REBOOTSTATUS
-	echo $Line
+	echo "$Line $STREAMSTATUS $REBOOTSTATUS $REBOOTPROCES" | nc -6 $LP_IPV6_ADRESS $LP_PORT
 	if [ ! -e /proc/$COMMANDPID -a $COMMANDPID -ne 0 ]; then
 		stty -F $SERIAL_INTERFACE raw ispeed $SERIAL_BAUTRATE ospeed $SERIAL_BAUTRATE cs8 -ignpar -cstopb -echo
 		wait $COMMANDPID
@@ -200,31 +204,31 @@ do
 		echo $COMMAND
 		if [ "$COMMAND" == "1" ]; then
 			if [ ! -e /proc/$STREAMPID ]; then
-				( raspivid -w 640 -h 480 -vf -hf -rot 90 -t 999999 -fps 10 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT ) &
+				( raspivid -w 640 -h 480 -vf -hf -rot 90 -t 999999 -fps 5 -b 4000000 -o - | nc -6 $LP_IPV6_ADRESS $LP_STREAM_PORT ) &
 				STREAMPID=$!
-				STREAMSTATUS="Stream Aktiv"
+				STREAMSTATUS="Stream=1"
 			fi;
 		fi;
-
 		if [ "$COMMAND" == "2" ]; then
 			if [ ! -e /proc/$REBOOTPID ]; then
-				if [ "$REBOOTSTATUS" == "kein reboot" ]; then
+				if [ "$REBOOTSTATUS" == "Reboot=0" ]; then
 					ping -c 1 8.8.8.8 &> /dev/null
 					if [ $? -eq 0 ];  then
 						(
 							reboot=0
-							apt-get update
-							reboot=$(( reboot + `apt-get upgrade -y | grep '^Inst' | wc -l` ))
-							reboot=$(( reboot + `apt-get dist-upgrade -y | grep '^Inst' | wc -l` ))
-							apt-get autoremove --purge -y
-							apt-get autoclean
+							apt-get update > /dev/null
+							reboot=$(( reboot + `apt-get upgrade --quiet -y | grep '^Inst' | wc -l` ))
+							reboot=$(( reboot + `apt-get dist-upgrade --quiet -y | grep '^Inst' | wc -l` ))
+							apt-get autoremove --purge -y > /dev/null
+							apt-get autoclean > /dev/null
 							reboot=$(( reboot + `rpi-update | grep 'reboot' | wc -l` ))
+							exit $reboot
 						) &
 						REBOOTPID=$!
 						REBOOTCASH=0
 					fi;
 				else
-					if [ "$REBOOTSTATUS" == "benötigt reboot" -a $REBOOTCASH -eq 1 ]; then
+					if [ "$REBOOTSTATUS" == "Reboot=1" -a $REBOOTCASH -eq 1 ]; then
 						MotorControl 255
 						reboot
 					fi;
