@@ -11,17 +11,17 @@
  DDRC =|PC0|PC1|PC2|PC3|PC4|PC5|PC6|PC7|
  DDRD =|PD0|PD1|PD2||PD4|PD5|PD6||
  
- DC_Motor			=PC2,PC3,PC4,PC5
- Serial				=PD0,PD1
+ DC_Motor				=PC2,PC3,PC4,PC5
+ Serial					=PD0,PD1
  externe Interrups		=PD2
- PWM				=PD4,PD5
- IR_Sensor			=PA1,PA2,PA3
+ PWM					=PD4,PD5
+ IR_Sensor				=PA1,PA2,PA3
  Ultraschall			=PC0,PC7
- Polulu				=PB0,PB2,PB4,PB6
- Serial uebertragung		=PC6
- uC_aktiv			=PC1
- Lichtschranke			=PD6
+ Polulu					=PB0,PB2,PB4,PB6
+ Serial uebertragung	=PC6
+ uC_aktiv				=PC1
  Schrittmotor			=PB0,PB2,PB4,PB6
+ Schrittmotor Endstop	=PD6
  
   ----------------------------------------------
  
@@ -39,6 +39,9 @@ int I_Wert;				// ISR variable fuer serielle komunikation starten
 int rPI;				// ISR variable pruefen ob raspberry PI errechbar ist
 int unsigned zaehler= 0;		// ISR Timer0 variable fuer overflow benoetigt fuer Ultraschall Radar
 int ulHistory[2] = {0,0};
+int stepperRound= 0;
+int firstStart = 1;
+
 
 ISR(INT0_vect) // Interrupt service routine loest aus wenn Raspberry errechtbar ist.
 {
@@ -209,24 +212,63 @@ int Usensor(void) // Messung Ultraschall Sensor
 	zaehler = 0;
 	return s;
 }
-
 int SchrittMotor(void) // Schrittmotor steuerung fuer Ultraschall Radar
 {
 	PORTB &= ~(1<<PB0);		// Schrittmotor Endstufe ENABLE
-	PORTB |= (1<<PB4);
-	_delay_ms(5);
-	PORTB &= ~(1<<PB4);
-	_delay_ms(5);			// Ein step vorwaerst
-	PORTB |= (1<<PB0);		// Schrittmotor Endstufe DIESABLE
-	int Smotor = 0;
-	if (PIND & (1<<PD6))	// Wenn Lichtschranke ausloest dann ...
+	if (firstStart == 1)
 	{
-		Smotor = 1;
+		firstStart = 0;
+		while (stepperRound < 24)
+		{
+			if (!(PIND & (1<<PIND6)))
+			{
+				stepperRound ++;
+			} else
+			{
+				stepperRound ++;
+				PORTB |= (1<<PB4);
+				_delay_ms(20);
+				PORTB &= ~(1<<PB4);
+				_delay_ms(200);
+			}
+		}
+		stepperRound = 0;
+		PORTB &= ~(1<<PB6); // Dir Low
 	}
-	uart_send_string("UL: ");
-	uart_send_int(Usensor(),1);
-	uart_send_string("cm ");
-	return Smotor;
+	if (stepperRound < 24)
+	{
+		stepperRound ++;
+		PORTB |= (1<<PB4);
+		_delay_ms(2);
+		PORTB &= ~(1<<PB4);
+		if (!(PIND & (1<<PIND6)) && stepperRound >= 3)
+		{
+			stepperRound = 24;
+		}
+	}
+	else
+	{
+		PORTB |= (1<<PB6); // Dir High
+		stepperRound ++;
+		PORTB |= (1<<PB4);
+		_delay_ms(2);
+		PORTB &= ~(1<<PB4);
+				if (!(PIND & (1<<PIND6)))
+				{
+					stepperRound = 49;
+				}
+	}
+	_delay_ms(2);
+	if (stepperRound >= 48)
+	{
+		stepperRound = 0;
+		PORTB &= ~(1<<PB6); // Dir low
+	}
+	_delay_ms(25);
+	uart_send_string("	UL:");
+	uart_send_int(Usensor(),2);
+	uart_send_string("	SM:");
+	return stepperRound;
 }
 
 int Sensor_Ausgabe(void) //Ausgabe der Sensoren
@@ -237,7 +279,6 @@ int Sensor_Ausgabe(void) //Ausgabe der Sensoren
 	uart_send_int(SensorFront(),2);	// Infrarot Rechter Sensor ausgeben
 	uart_send_string("	SL:");
 	uart_send_int(SensorLinks(),2);	// Infrarot Linker Sensor ausgeben
-	uart_send_string("	SM:");
 	uart_send_int(SchrittMotor(),2);	// Schrittmotor Referrers signal der Lichtschranke ausgeben
 	uart_send_string("\n\r");		// Zeielnumbruch
 	_delay_ms(1);
@@ -250,15 +291,18 @@ int main(void)
 	DDRC = 0b01111111;
 	DDRB = 0b11111111;
 	DDRA = 0b11110001;
-	DDRD &= ~((1 << PD2)|(1<<PD6));			// INT0 und Lichtschranke input...
+	DDRD &= ~((1 << PD2)|(1<<PD6));			// INT0 und Schrittmotor Endstop input...
 	DDRD |= (1<<PD4)|(1<<PD5);			// PWM Ausgaenge festlegen
 	ADCSRA = 0b10000111;				// Prescaler 128
 	ADMUX |= (1<<REFS0);				// 5V Referrens spannung
 	TCCR1A |= (1<<WGM10)|(1<<COM1A1)|(1<<COM1B1);
 	TCCR1B |= (1<<WGM12)|(1<<CS12);			// Prescaler 256
-	GICR |= (1<<INT0);				// IRS INT0 externer Interrupt aktiviren
+	GICR |= (1<<INT0);					// IRS INT0 externer Interrupt aktiviren
 	MCUCR |= (1<<ISC00);				// ISR INT0 Reaktion auf jede aenderung
-	PORTB |= ((1<<PB0)|(1<<PB6));			// Schrittmotor Endstufe aus schalten
+	PORTB |= (1<<PB0);					// Schrittmotor Endstufe aus schalten
+	PORTB &= ~(1<<PB2);					// Microstepps Disable
+	PORTB |= (1<<PB6);					// Dir High
+	PORTD |= (1<<PD6);					// Setze Pullup für Schrittmotor Endstop
 	TIMSK |= (1<<TOIE0);				// Timer0 Overflow Interrupt erlauben
 	
     while(1)
@@ -319,6 +363,7 @@ int main(void)
 		else
 		{
 			PORTC &= ~(1<<PC1);
+			PORTB |= (1<<PB0);		// Schrittmotor Endstufe DIESABLE
 			Motor_richtung(5,5);			// uebergabe an Motor_richtung
 			set_sleep_mode(SLEEP_MODE_IDLE);	// sleep mode Aktiviren
 			sleep_mode();				// uC geht Ideln
