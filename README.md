@@ -4,11 +4,11 @@ BFGT-Roboter
 ##### ToDo
 
 -------ATmega32--------
-1. Ultraschall-Sensor Funktion inplementieren	<-- Done, testing
-2. Schrittmotor Funktion inplementieren		<-- Done, testing
+1. Ultraschall-Sensor Funktion inplementieren	  <-- Done, testing
+2. Schrittmotor Funktion inplementieren	      	<-- Done, testing
 3. Schrittmotor endstop Funktion inplementiren	<-- Done, testing
 4. IR Sensoren Funktion korigiren(inplementiren)<-- Done
-5. Powersavemode überarbeiten und prüfen	<-- Done
+5. Powersavemode überarbeiten und prüfen	      <-- Done
 
 -------Serial interface------
 6. Serial daten übertragung optimiren (möglichts kleine und wenige daten)
